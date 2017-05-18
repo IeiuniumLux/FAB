@@ -11,6 +11,8 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 
 import com.MAVLink.common.msg_command_long;
+import com.MAVLink.enums.MAV_CMD;
+import com.MAVLink.enums.MAV_MODE_FLAG;
 import com.o3dr.android.client.ControlTower;
 import com.o3dr.android.client.Drone;
 import com.o3dr.android.client.apis.ExperimentalApi;
@@ -31,13 +33,6 @@ import com.o3dr.services.android.lib.mavlink.MavlinkMessageWrapper;
 import com.o3dr.services.android.lib.model.SimpleCommandListener;
 
 import java.util.List;
-
-import static com.MAVLink.enums.MAV_CMD.MAV_CMD_DO_SET_MODE;
-import static com.MAVLink.enums.MAV_CMD.MAV_CMD_NAV_GUIDED_ENABLE;
-import static com.MAVLink.enums.MAV_MODE_FLAG.MAV_MODE_FLAG_AUTO_ENABLED;
-import static com.MAVLink.enums.MAV_MODE_FLAG.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
-import static com.MAVLink.enums.MAV_MODE_FLAG.MAV_MODE_FLAG_SAFETY_ARMED;
-import static com.o3dr.services.android.lib.drone.attribute.AttributeEvent.ALTITUDE_UPDATED;
 
 
 public class FABActivity extends AppCompatActivity implements DroneListener, TowerListener, LinkListener {
@@ -104,7 +99,6 @@ public class FABActivity extends AppCompatActivity implements DroneListener, Tow
     public void onDroneEvent(String event, Bundle extras) {
         switch (event) {
             case AttributeEvent.STATE_CONNECTED:
-                updateTakeoffButton(mDrone.isConnected());
 
                 change_flight_mode(PX4_CUSTOM_MAIN_MODE_ALTCTL);
 
@@ -145,7 +139,7 @@ public class FABActivity extends AppCompatActivity implements DroneListener, Tow
                             }
                         }, 1800);
                         hasFlown = true;
-                        mTakeoffButton.setText("Flying Offboard");
+                        mTakeoffButton.setText("Flying");
                     }
                 } else if (vehicleState.isConnected()) {
                     if (hasFlown) {
@@ -169,7 +163,7 @@ public class FABActivity extends AppCompatActivity implements DroneListener, Tow
                 Log.i("SPEED - ", String.format("%3.1f", droneSpeed.getGroundSpeed()) + "m/s");
                 break;
 
-            case ALTITUDE_UPDATED:
+            case AttributeEvent.ALTITUDE_UPDATED:
                 Altitude droneAltitude = mDrone.getAttribute(AttributeType.ALTITUDE);
                 Log.i("ALTITUDE - ", String.format("%3.1f", droneAltitude.getAltitude()) + "m");
                 break;
@@ -227,7 +221,7 @@ public class FABActivity extends AppCompatActivity implements DroneListener, Tow
 
     protected void toggle_offboard_control(float flag) {
         msg_command_long msg = new msg_command_long();
-        msg.command = MAV_CMD_NAV_GUIDED_ENABLE;
+        msg.command = MAV_CMD.MAV_CMD_NAV_GUIDED_ENABLE;
         msg.confirmation = (short) 1;
         msg.param1 = flag; // flag > 0.5 => start, < 0.5 => stop
         MavlinkMessageWrapper msgWrapper = new MavlinkMessageWrapper(msg);
@@ -236,9 +230,9 @@ public class FABActivity extends AppCompatActivity implements DroneListener, Tow
 
     protected void change_flight_mode(int mode) {
         msg_command_long msg = new msg_command_long();
-        msg.command = MAV_CMD_DO_SET_MODE;
+        msg.command = MAV_CMD.MAV_CMD_DO_SET_MODE;
         // The first parameter is a bitmask
-        msg.param1 = MAV_MODE_FLAG_SAFETY_ARMED | MAV_MODE_FLAG_CUSTOM_MODE_ENABLED | MAV_MODE_FLAG_AUTO_ENABLED;
+        msg.param1 = MAV_MODE_FLAG.MAV_MODE_FLAG_SAFETY_ARMED | MAV_MODE_FLAG.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED | MAV_MODE_FLAG.MAV_MODE_FLAG_AUTO_ENABLED;
         msg.param2 = mode;
         msg.param3 = 0;
         MavlinkMessageWrapper msgWrapper = new MavlinkMessageWrapper(msg);
