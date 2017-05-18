@@ -15,7 +15,7 @@ The experimental MAV platform is made from carbon fiber COTS components and is e
 + DroneKit
 + MAVBridge
 
-<a href="https://www.youtube.com/watch?v=TwOflR7KXuQ" target="_blank"><img src="https://img.youtube.com/vi/CSt2krIDdPI/0.jpg" 
+<a href="https://www.youtube.com/watch?v=TwOflR7KXuQ" target="_blank"><img src="https://img.youtube.com/vi/TwOflR7KXuQ/0.jpg"
 alt="IMAGE ALT TEXT HERE" width="240" height="180" border="10" /></a>
 
 ##### Acknowledgements:
