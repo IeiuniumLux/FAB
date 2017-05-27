@@ -1,6 +1,8 @@
 package me.abencomo.fab;
 
 import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.NonNull;
@@ -71,8 +73,16 @@ public class FABActivity extends AppCompatActivity implements DroneListener, Tow
     @Override
     protected void onStart() {
         super.onStart();
-        mControlTower.connect(this);
-        updateVehicleModesForType(Type.TYPE_COPTER);
+        ConnectivityManager connMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        NetworkInfo activeInfo = connMgr.getActiveNetworkInfo();
+        if (activeInfo != null && activeInfo.isConnected() && activeInfo.getType() == ConnectivityManager.TYPE_WIFI) {
+            mControlTower.connect(this);
+            updateVehicleModesForType(Type.TYPE_COPTER);
+            mTakeoffButton.setEnabled(true);
+        } else {
+            mTakeoffButton.setEnabled(false);
+        }
     }
 
     @Override
@@ -89,7 +99,6 @@ public class FABActivity extends AppCompatActivity implements DroneListener, Tow
         if (mDrone.isConnected()) {
             mDrone.unregisterDroneListener(this);
             mDrone.disconnect();
-            updateTakeoffButton(false);
         }
         mControlTower.unregisterDrone(mDrone);
         mControlTower.disconnect();
@@ -122,7 +131,7 @@ public class FABActivity extends AppCompatActivity implements DroneListener, Tow
 
             case AttributeEvent.STATE_DISCONNECTED:
                 mOffboard.stop();
-                updateTakeoffButton(mDrone.isConnected());
+                mTakeoffButton.setText("Takeoff");
                 break;
 
             case AttributeEvent.STATE_UPDATED:
@@ -155,18 +164,23 @@ public class FABActivity extends AppCompatActivity implements DroneListener, Tow
             case AttributeEvent.STATE_VEHICLE_MODE:
                 State vehicleStateMode = mDrone.getAttribute(AttributeType.STATE);
                 VehicleMode vehicleMode = vehicleStateMode.getVehicleMode();
-                Log.i("VEHICLE_MODE - ", vehicleMode.getLabel());
+                Log.e("VEHICLE_MODE - ", vehicleMode.getLabel());
                 break;
 
             case AttributeEvent.SPEED_UPDATED:
                 Speed droneSpeed = mDrone.getAttribute(AttributeType.SPEED);
-                Log.i("SPEED - ", String.format("%3.1f", droneSpeed.getGroundSpeed()) + "m/s");
+                Log.e("SPEED - ", String.format("%3.1f", droneSpeed.getGroundSpeed()) + "m/s");
                 break;
 
             case AttributeEvent.ALTITUDE_UPDATED:
                 Altitude droneAltitude = mDrone.getAttribute(AttributeType.ALTITUDE);
-                Log.i("ALTITUDE - ", String.format("%3.1f", droneAltitude.getAltitude()) + "m");
+                Log.e("ALTITUDE - ", String.format("%3.1f", droneAltitude.getAltitude()) + "m");
                 break;
+
+//            case AttributeEvent.ATTITUDE_UPDATED:
+//                Attitude droneAttitude = mDrone.getAttribute(AttributeType.ATTITUDE);
+//                Log.e("ATTITUDE - ", String.format("%3.1f", droneAttitude.getYaw()) + "r");
+//                break;
 
             default:
                 break;
@@ -183,11 +197,12 @@ public class FABActivity extends AppCompatActivity implements DroneListener, Tow
         switch (connectionStatus.getStatusCode()) {
             case LinkConnectionStatus.FAILED:
                 Bundle extras = connectionStatus.getExtras();
-                String msg = null;
                 if (extras != null) {
-                    msg = extras.getString(LinkConnectionStatus.EXTRA_ERROR_MSG);
+                    Log.e(TAG, ">>> Connection Failed:" + extras.getString(LinkConnectionStatus.EXTRA_ERROR_MSG));
                 }
-                Log.e(TAG, ">>> Connection Failed:" + msg);
+                break;
+            case LinkConnectionStatus.CONNECTED:
+                mTakeoffButton.setText("Arming");
                 break;
         }
     }
@@ -214,8 +229,7 @@ public class FABActivity extends AppCompatActivity implements DroneListener, Tow
             mDrone.disconnect();
         } else {
             ConnectionParameter connectionParams = ConnectionParameter.newUdpConnection(null);
-            mDrone.connect(connectionParams);
-            mTakeoffButton.setText("Arming");
+            mDrone.connect(connectionParams, this);
         }
     }
 
@@ -240,18 +254,7 @@ public class FABActivity extends AppCompatActivity implements DroneListener, Tow
     }
 
     protected void arm(boolean arm) {
-        Log.e("Drone - ", (arm) ? "Arming" : "Disarming");
         VehicleApi.getApi(mDrone).arm(arm, false, new SimpleCommandListener());
-    }
-
-    // UI updating
-    // ==========================================================
-    protected void updateTakeoffButton(Boolean isConnected) {
-        if (isConnected) {
-            mTakeoffButton.setText("Land");
-        } else {
-            mTakeoffButton.setText("Takeoff");
-        }
     }
 
     /**
